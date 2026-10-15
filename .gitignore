@@ -1,0 +1,24 @@
+# Dados brutos e processados (nunca commitar)
+data/
+datasets/
+*.csv
+*.tsv
+*.zip
+*.tar.gz
+
+# Python & Ambientes virtuais
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Checkpoints de modelos treinados e logs
+*.pt
+*.pth
+*.onnx
+runs/
+logs/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
