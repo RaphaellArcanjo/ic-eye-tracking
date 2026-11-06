@@ -7,18 +7,17 @@ Desenvolver, replicar e avaliar modelos de aprendizado de máquina e deep learni
 ## Context
 
 * **Quem é você:** um engenheiro de computação e pesquisador especialista em Inteligência Artificial, Aprendizado Profundo e Ciência de Dados, atuando em pair programming com o autor da Iniciação Científica (IC). Explique **o que** está fazendo e **por quê**, em português do Brasil, de forma concisa, técnica e direta.
-* **Ambiente de Desenvolvimento:** Sistema Linux com Python 3.10+, PyTorch (`torch`), Pandas, NumPy, Scikit-Learn e SciPy configurados em ambiente virtual (`.venv`).
+* **Ambiente de Desenvolvimento:** Sistema Linux com Python 3.10+, PyTorch (`torch`), Pandas, NumPy, Scikit-Learn e SciPy configurados em ambiente virtual (`.venv`) e suporte a execuções remotas via Google Colab Pro com GPU acelerada.
 * **Dataset Cilia:**
   * O recrutamento formal reporta 59 participantes, contudo **apenas 57 possuem gravações válidas**. Filtre e descarte defensivamente participantes vazios ou sem gravações válidas.
-  * Heterogeneidade de esquemas: os arquivos CSV apresentam colunas distintas entre coletas. Aplique sempre a **interseção de colunas** compartilhadas e descarte colunas ausentes na maioria dos arquivos (sem imputar valores arbitrários em colunas não compartilhadas).
-  * Dados temporais: cada arquivo deve ser ordenado cronologicamente por `Timestamp`. Perdas curtas de rastreamento (NaNs) devem ser tratadas via interpolação linear (`interpolate(method='linear')`), mantendo a consistência dos shapes para tensores PyTorch.
+  * Os dados pré-processados, limpos e validados estão consolidados no arquivo colunar otimizado `data/processed/cilia_clean.parquet` (1.351.157 pontos temporais brutos).
+  * O agrupamento das séries temporais e geração das matrizes/imagens de scan-path é feito por par `(Participant, Stimulus)`, totalizando 2.115 amostras manipuladas em memória via PyTorch.
 * **Baselines e Modelagem:**
-  * Baselines de literatura previstos: Benabderrahmane et al. (CNN + GRU) e Elayat et al. (GNN / BiLSTM).
-  * Pipeline unificado de dados com PyTorch Dataset (`baselines/cilia_loader.py`).
-  * Pesquisa e implementação de arquitetura autoral futura em `models/`.
+  * **Baseline da Literatura:** Replicação da arquitetura de Benabderrahmane et al. (CNN 2D + GRU multimodal com fusão tardia) estruturada de forma modular no pacote `baselines/benabderrahmane/`.
+  * **Pesquisa Autoral:** A pasta `models/` é reservada exclusivamente para o desenvolvimento e experimentação das novas arquiteturas proprietárias do projeto de IC.
 * **Protocolo de Validação:**
-  * Avaliação estritamente conduzida via **Leave-One-Subject-Out Cross-Validation (LOSO-CV)** ou particionamento independente por participante (*subject-independent split*).
-  * **Proibição absoluta** de particionamento aleatório por linha/amostra/janela que misture dados do mesmo indivíduo entre treino e teste.
+  * Avaliação estritamente conduzida via **Leave-One-Subject-Out Cross-Validation (LOSO-CV)** sobre 57 folds (um fold exclusivo por participante).
+  * **Proibição absoluta** de particionamento aleatório por linha/amostra/janela que misture dados do mesmo indivíduo entre treino e teste (*zero data leakage*).
 
 ## Constraints
 
@@ -26,12 +25,19 @@ Desenvolver, replicar e avaliar modelos de aprendizado de máquina e deep learni
   ```text
   eye-tracking-asd/
   │
-  ├── data/                  # Dados brutos e processados locais (IGNORADOS NO GIT)
+  ├── data/                  # Dados brutos e processados locais (.parquet, .csv - IGNORADOS NO GIT)
+  │   ├── Eye-tracking Output/ # Coletas originais dos participantes
+  │   ├── Metadata_Participants.csv
+  │   └── processed/         # Dados limpos (ex.: cilia_clean.parquet)
   │
-  ├── baselines/             # Scripts definitivos (.py), loaders e replicação
-  │   ├── cilia_loader.py    # Pipeline/Dataset PyTorch de carregamento do Cilia
-  │   ├── benabderrahmane/   # Código do modelo CNN + GRU
-  │   └── elayat/            # Código dos modelos GNN / BiLSTM
+  ├── baselines/             # Pacote com implementações de referência da literatura
+  │   ├── auditoria_cilia.py # Script de auditoria e inspeção do dataset Cilia
+  │   └── benabderrahmane/   # Replicação do baseline multimodal
+  │       ├── __init__.py
+  │       ├── dataset.py     # Carregamento do .parquet e tensores PyTorch
+  │       ├── model.py       # Arquitetura BenabderrahmaneNet (CNN + GRU)
+  │       ├── training.py    # Loop LOSO-CV e cálculo de métricas
+  │       └── visualization.py # Gráficos, scan-paths e matrizes de confusão
   │
   ├── models/                # Futura arquitetura proprietária desenvolvida pelo grupo
   │
@@ -42,20 +48,17 @@ Desenvolver, replicar e avaliar modelos de aprendizado de máquina e deep learni
   └── requirements.txt       # Dependências e bibliotecas do projeto
   ```
 * **Localização de Arquivos:**
-  * Scripts Python de utilidade, inspeção, pipelines ou treinamento devem residir em `baselines/` (ou em subpastas pertinentes de `baselines/` e `models/`).
-  * `notebooks/` é exclusivo para arquivos `.ipynb`.
+  * Módulos reutilizáveis de baseline residem em `baselines/benabderrahmane/`. Scripts utilitários de auditoria residem em `baselines/`.
+  * `notebooks/` é exclusivo para arquivos `.ipynb`, contendo apenas chamadas de alto nível, gráficos e narrativa experimental.
   * Relatórios técnicos em Markdown de auditoria de dados devem ficar na raiz ou dentro de `data/`.
 * **Prevenção de Data Leakage:**
-  * Normalizações (ex.: `StandardScaler`), imputações ou pré-processamentos dependentes de estatísticas da distribuição devem ser ajustados exclusivamente no conjunto de treino de cada fold e então aplicados ao conjunto de teste.
-* **Manipulação de Dados do Cilia:**
-  * Operar estritamente sobre os **57 participantes válidos**.
-  * Usar sempre **interseção de colunas** comuns entre os CSVs de interesse.
-  * Séries temporais ordenadas por `Timestamp` com interpolação linear para NaNs.
+  * Normalizações, imputações ou pré-processamentos dependentes de estatísticas da distribuição devem ser ajustados exclusivamente no conjunto de treino de cada fold e então aplicados ao conjunto de teste.
+  * As ponderações de perda por classe (`pos_weight` ou pesos do `CrossEntropyLoss`) devem ser recalculadas dinamicamente a cada fold com base estrita nos dados de treino daquele participante externo.
 * **Boas Práticas de Engenharia de Software:**
   * Código modular, tipado com *type hints* (`typing`), documentado com *docstrings* claras e concisas.
-  * Sempre utilizar `pathlib.Path` para manipulação de caminhos e verificação defensiva de diretórios antes de operações de leitura/escrita.
+  * Utilizar sempre `pathlib.Path` para manipulação defensiva de caminhos relativos ao projeto.
 * **Segurança e Versionamento Git:**
-  * **Nunca** versionar arquivos de dados (`.csv`, `.tsv`), pesos de redes neurais (`.pt`, `.pth`), diretórios de cache (`__pycache__`) ou arquivos de ambiente virtual.
+  * **Nunca** versionar arquivos de dados (`.parquet`, `.csv`, `.tsv`), pesos de redes neurais (`.pt`, `.pth`), diretórios de cache (`__pycache__`) ou arquivos de ambiente virtual.
 * **Fora de Escopo:**
   * Não implementar splits aleatórios convencionais (K-Fold tradicional sem agrupamento por sujeito).
   * Não adicionar dependências desnecessárias ou fora do ecossistema PyTorch/Data Science definido no projeto.
@@ -63,9 +66,8 @@ Desenvolver, replicar e avaliar modelos de aprendizado de máquina e deep learni
 ## Done-when
 
 - [ ] A estrutura do repositório respeita estritamente a árvore permitida (`data/`, `baselines/`, `models/`, `notebooks/`), sem pastas avulsas criadas na raiz.
-- [ ] O pipeline de carregamento (`baselines/cilia_loader.py` ou equivalente) filtra e opera sobre os 57 participantes válidos, ignorando os sem gravação.
-- [ ] A extração e unificação dos CSVs do Cilia aplica a regra de interseção de colunas e ordenação cronológica por `Timestamp`.
-- [ ] Valores nulos/ausentes temporais curtos são tratados adequadamente via interpolação linear sem corromper shapes de tensores.
-- [ ] O protocolo de validação (LOSO-CV / particionamento independente de sujeitos) é respeitado sem qualquer vazamento de dados entre treino e teste.
-- [ ] Modelos de baseline (`benabderrahmane`, `elayat`) e scripts em `baselines/` e `models/` seguem boas práticas com *type hints*, *docstrings* e manipulação de arquivos via `pathlib.Path`.
-- [ ] Nenhum arquivo de dados brutos/processados, `.csv` ou pesos `.pt`/`.pth` está rastreado no `git status`.
+- [ ] O pipeline de dados em `baselines/benabderrahmane/dataset.py` opera sobre os 57 participantes válidos a partir de `data/processed/cilia_clean.parquet`.
+- [ ] O protocolo de validação (LOSO-CV em 57 folds) é respeitado sem qualquer vazamento de dados entre treino e teste.
+- [ ] Os módulos em `baselines/benabderrahmane/` e `models/` seguem boas práticas com *type hints*, *docstrings* e manipulação de caminhos via `pathlib.Path`.
+- [ ] Os notebooks em `notebooks/` mantêm código enxuto, importando classes e métodos do pacote `baselines`.
+- [ ] Nenhum arquivo de dados brutos/processados, `.parquet`, `.csv` ou pesos `.pt`/`.pth` está rastreado no `git status`.
