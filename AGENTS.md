@@ -32,6 +32,7 @@ Desenvolver, replicar e avaliar modelos de aprendizado de máquina e deep learni
   │
   ├── baselines/             # Pacote com implementações de referência da literatura
   │   ├── auditoria_cilia.py # Script de auditoria e inspeção do dataset Cilia
+  │   ├── preparar_cilia.py  # Script de limpeza e geração do cilia_clean.parquet
   │   └── benabderrahmane/   # Replicação do baseline multimodal
   │       ├── __init__.py
   │       ├── dataset.py     # Carregamento do .parquet e tensores PyTorch

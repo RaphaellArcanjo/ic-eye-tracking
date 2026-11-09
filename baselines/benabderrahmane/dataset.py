@@ -310,7 +310,7 @@ def extract_group_features(
 
 
 class BenabderrahmaneDataset(Dataset):
-    """Dataset PyTorch multimodal com extração sob demanda siguiendo Benabderrahmane et al. (2024)."""
+    """Dataset PyTorch multimodal com extração sob demanda seguindo Benabderrahmane et al. (2024)."""
 
     def __init__(
         self,

@@ -229,7 +229,7 @@ def train_single_fold(
     device: Optional[torch.device | str] = None,
     seed: int = 42,
 ) -> dict[str, Any]:
-    """Executa o treinamento e avaliação de um único Fold LOSO-CV (padrão: Participante ID 1).
+    """Executa o treinamento e avaliação de um único fold LOSO-CV (padrão: Participante ID 1).
 
     Args:
         valid_groups: Dicionário de grupos `(Participant, Stimulus)` válidos.
@@ -257,7 +257,7 @@ def train_single_fold(
     w0, w1 = float(class_weights[0].detach().cpu().item()), float(class_weights[1].detach().cpu().item())
 
     print("=" * 75)
-    print(f"CONFIGURAÇÃO DO FOLD 1 (TESTE: PARTICIPANTE ID {test_pid})")
+    print(f"CONFIGURAÇÃO DO FOLD ÚNICO (TESTE: PARTICIPANTE ID {test_pid})")
     print("=" * 75)
     print(
         f"• Amostras de Treino : {len(train_keys):,} | "
